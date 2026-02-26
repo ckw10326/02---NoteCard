@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LLM 中轉站 - 私人版 v1.2</title>
+  <title>LLM 中轉站 - 私人版 v1.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -18,7 +18,7 @@
       <h1 class="text-3xl font-bold text-white flex items-center gap-3">
         <i class="fas fa-robot"></i> LLM 中轉站
       </h1>
-      <p class="text-sm text-emerald-400 mt-1">v1.2 • Kimi 401 專修版</p>
+      <p class="text-xs text-emerald-400 mt-1">v1.3 - 2026-02-26 15:30 CST • 已修正 Kimi URL & CORS 提示</p>
     </div>
 
     <div class="p-6 flex-1 flex flex-col gap-6">
@@ -28,16 +28,16 @@
         <select id="apiSelect" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white">
           <option value="deepseek">DeepSeek (5M 免費)</option>
           <option value="grok">Grok (xAI)</option>
-          <option value="kimi">Kimi (已充值 $5)</option>
+          <option value="kimi" selected>Kimi (已充值 $5 • .cn)</option>
         </select>
       </div>
 
-      <!-- Kimi Region 切換（只在選 Kimi 時顯示） -->
-      <div id="kimiRegionGroup" class="hidden">
-        <label class="block text-sm font-medium mb-2">Kimi Region（401 問題必試）</label>
+      <!-- Kimi Region -->
+      <div id="kimiRegionGroup">
+        <label class="block text-sm font-medium mb-2">Kimi Region（已預設 .cn）</label>
         <select id="kimiRegion" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white">
-          <option value="ai">International (.ai) - 預設</option>
-          <option value="cn">Domestic (.cn) - 台灣用戶推薦</option>
+          <option value="cn" selected>Domestic (.cn) - 你註冊平台</option>
+          <option value="ai">International (.ai)</option>
         </select>
       </div>
 
@@ -59,7 +59,7 @@
     </div>
 
     <div class="p-6 text-xs text-gray-500 border-t border-gray-700">
-      私人測試 • 有問題直接截圖告訴我
+      私人測試版 • 每次更新都會顯示版本時間
     </div>
   </div>
 
@@ -67,7 +67,7 @@
   <div class="flex-1 flex flex-col">
     <div class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <span id="currentAPI" class="font-semibold text-lg text-emerald-400">DeepSeek 已啟用</span>
+        <span id="currentAPI" class="font-semibold text-lg text-emerald-400">Kimi (.cn) 已啟用</span>
       </div>
       <div class="text-sm text-gray-400">記憶功能已開啟</div>
     </div>
@@ -82,32 +82,32 @@
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>
-      <div class="text-center text-xs text-gray-500 mt-3">支援 Streaming • v1.2 詳細錯誤顯示</div>
+      <div class="text-center text-xs text-gray-500 mt-3">v1.3 • 詳細錯誤診斷</div>
     </div>
   </div>
 </body>
 <script>
-// ==================== 配置 ====================
+// ==================== 配置 v1.3 ====================
 const API_CONFIGS = {
   deepseek: { name: "DeepSeek", baseURL: "https://api.deepseek.com", endpoint: "/chat/completions", model: "deepseek-chat" },
   grok: { name: "Grok", baseURL: "https://api.x.ai/v1", endpoint: "/chat/completions", model: "grok-beta" },
-  kimi: { name: "Kimi", endpoint: "/chat/completions", model: "kimi-k2.5" }  // baseURL 動態設定
+  kimi: { name: "Kimi", endpoint: "/chat/completions", model: "kimi-k2.5" }
 };
 
-let currentAPI = 'deepseek';
+let currentAPI = 'kimi';
 let messages = [];
 let isStreaming = false;
-let kimiRegion = 'ai';  // ai 或 cn
+let kimiRegion = 'cn';  // 預設 .cn
 
-// ==================== 載入設定 ====================
+// ==================== 載入 ====================
 function loadSettings() {
-  currentAPI = localStorage.getItem('currentAPI') || 'deepseek';
+  currentAPI = localStorage.getItem('currentAPI') || 'kimi';
   document.getElementById('apiSelect').value = currentAPI;
-  updateCurrentAPI();
 
-  // Kimi Region
-  kimiRegion = localStorage.getItem('kimiRegion') || 'ai';
+  kimiRegion = localStorage.getItem('kimiRegion') || 'cn';
   document.getElementById('kimiRegion').value = kimiRegion;
+
+  updateCurrentAPI();
   toggleKimiRegion();
 
   const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
@@ -124,22 +124,21 @@ function toggleKimiRegion() {
   document.getElementById('kimiRegionGroup').classList.toggle('hidden', currentAPI !== 'kimi');
 }
 
-// ==================== 儲存 ====================
+// ==================== 儲存 & 更新 ====================
 function saveKey() {
-  let key = document.getElementById('apiKey').value.trim();  // 自動去除空格
+  const key = document.getElementById('apiKey').value.trim();
   if (!key) return alert('請輸入 API Key');
   localStorage.setItem(`apiKey_${currentAPI}`, key);
-  alert('✅ API Key 已儲存並自動 trim 空格！');
+  alert('✅ Key 已儲存！');
 }
 
 function updateCurrentAPI() {
-  const config = API_CONFIGS[currentAPI];
-  let text = `${config.name} 已啟用`;
-  if (currentAPI === 'kimi') text += ` (${kimiRegion.toUpperCase()})`;
+  let text = `${API_CONFIGS[currentAPI].name} 已啟用`;
+  if (currentAPI === 'kimi') text += ` (.${kimiRegion})`;
   document.getElementById('currentAPI').innerHTML = text;
 }
 
-// ==================== 聊天渲染（略，同之前） ====================
+// ==================== 聊天渲染 ====================
 function renderMessages() {
   const chat = document.getElementById('chat');
   chat.innerHTML = '';
@@ -157,7 +156,7 @@ function renderMessages() {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// ==================== 送出訊息（重點：詳細錯誤 + 動態 baseURL） ====================
+// ==================== 送出訊息（已修正 baseURL + 加強錯誤） ====================
 async function sendMessage() {
   const input = document.getElementById('userInput');
   const text = input.value.trim();
@@ -167,7 +166,7 @@ async function sendMessage() {
   renderMessages();
   input.value = '';
 
-  let key = localStorage.getItem(`apiKey_${currentAPI}`);
+  const key = localStorage.getItem(`apiKey_${currentAPI}`);
   if (!key) return alert('請先儲存 API Key');
 
   const chat = document.getElementById('chat');
@@ -176,7 +175,7 @@ async function sendMessage() {
   assistantDiv.innerHTML = `
     <div class="bg-gray-800 px-5 py-4 rounded-3xl rounded-tl-none w-full">
       <div class="text-sm opacity-75 mb-1">${API_CONFIGS[currentAPI].name} 思考中...</div>
-      <div id="streamingText" class="whitespace-pre-wrap"></div>
+      <div id="streamingText" class="whitespace-pre-wrap text-emerald-400"></div>
     </div>
   `;
   chat.appendChild(assistantDiv);
@@ -190,7 +189,9 @@ async function sendMessage() {
 
     let config = {...API_CONFIGS[currentAPI]};
     if (currentAPI === 'kimi') {
-      config.baseURL = `https://api.moonshot.${kimiRegion}.v1`;
+      config.baseURL = kimiRegion === 'ai' 
+        ? 'https://api.moonshot.ai/v1' 
+        : 'https://api.moonshot.cn/v1';   // 你註冊的 .cn 已預設
     }
 
     const response = await fetch(config.baseURL + config.endpoint, {
@@ -207,12 +208,11 @@ async function sendMessage() {
     });
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const errMsg = errData.error?.message || errData.error || response.statusText;
-      throw new Error(`HTTP ${response.status} - ${errMsg}`);
+      const errText = await response.text();
+      throw new Error(`HTTP ${response.status} - ${errText.slice(0, 200)}`);
     }
 
-    // streaming 處理（同之前）
+    // streaming 處理
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     while (true) {
@@ -238,22 +238,25 @@ async function sendMessage() {
     renderMessages();
 
   } catch (err) {
-    streamingText.innerHTML = `<span class="text-red-400">❌ ${err.message}</span><br><span class="text-xs opacity-75">（已顯示官方完整錯誤）</span>`;
+    let msg = err.message;
+    if (msg.includes('Failed to fetch')) {
+      msg = '❌ Failed to fetch<br><span class="text-xs">這是 CORS 問題：Kimi 官方不允許 GitHub Pages 直接呼叫<br>解決方案：我下一版幫你加 Cloudflare Worker 中轉（2 分鐘搞定）</span>';
+    }
+    streamingText.innerHTML = `<span class="text-red-400">${msg}</span>`;
   } finally {
     isStreaming = false;
   }
 }
 
-// ==================== 其他功能（同之前） ====================
-function clearChat() {
-  if (confirm('確定清空所有對話？')) {
+function clearChat() { /* 同之前 */ 
+  if (confirm('確定清空？')) {
     messages = [];
     localStorage.removeItem('chatMessages');
     renderMessages();
   }
 }
 
-function exportChat() {
+function exportChat() { /* 同之前 */ 
   if (messages.length === 0) return alert('沒有對話');
   const json = JSON.stringify(messages, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
@@ -269,7 +272,6 @@ document.getElementById('apiSelect').addEventListener('change', e => {
   localStorage.setItem('currentAPI', currentAPI);
   updateCurrentAPI();
   toggleKimiRegion();
-
   const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
   document.getElementById('apiKey').value = savedKey || '';
 });

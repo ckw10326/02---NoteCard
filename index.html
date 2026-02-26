@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM 中轉站 - 私人版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .message { max-width: 85%; }
+    .chat-container { scrollbar-width: thin; scrollbar-color: #4b5563 #1f2937; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-200 flex h-screen overflow-hidden">
+  <!-- 左側設定面板 -->
+  <div class="w-80 bg-gray-900 border-r border-gray-700 flex flex-col">
+    <div class="p-6 border-b border-gray-700">
+      <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+        <i class="fas fa-robot"></i>
+        LLM 中轉站
+      </h1>
+      <p class="text-sm text-gray-400 mt-1">私人測試版 • 2026</p>
+    </div>
+
+    <div class="p-6 flex-1 flex flex-col gap-6">
+      <!-- API 選擇 -->
+      <div>
+        <label class="block text-sm font-medium mb-2">選擇 API（預設 Kimi）</label>
+        <select id="apiSelect" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+          <option value="kimi">Kimi (kimi-k2.5) - 預設</option>
+          <option value="grok">Grok (xAI) - grok-beta</option>
+          <option value="deepseek">DeepSeek - deepseek-chat</option>
+        </select>
+      </div>
+
+      <!-- API Key -->
+      <div>
+        <label class="block text-sm font-medium mb-2">API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." 
+               class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+        <button onclick="saveKey()" 
+                class="mt-3 w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-medium flex items-center justify-center gap-2">
+          <i class="fas fa-save"></i> 儲存 Key
+        </button>
+      </div>
+
+      <!-- 功能按鈕 -->
+      <div class="flex gap-3">
+        <button onclick="clearChat()" 
+                class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-medium">
+          🗑️ 清空對話
+        </button>
+        <button onclick="exportChat()" 
+                class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-medium">
+          📤 匯出對話
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 text-xs text-gray-500 border-t border-gray-700">
+      只限私人使用 • Key 會存在瀏覽器<br>
+      有問題直接告訴我，我立刻幫你改
+    </div>
+  </div>
+
+  <!-- 右側聊天區域 -->
+  <div class="flex-1 flex flex-col">
+    <!-- 標題列 -->
+    <div class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span id="currentAPI" class="font-semibold text-lg">Kimi (預設)</span>
+      </div>
+      <div class="text-sm text-gray-400">記憶功能已開啟 • 自動儲存</div>
+    </div>
+
+    <!-- 聊天訊息區 -->
+    <div id="chat" class="flex-1 p-6 overflow-y-auto chat-container bg-gray-950 space-y-6"></div>
+
+    <!-- 輸入區 -->
+    <div class="bg-gray-900 border-t border-gray-700 p-6">
+      <div class="flex gap-3">
+        <textarea id="userInput" rows="1"
+                  class="flex-1 bg-gray-800 border border-gray-600 rounded-2xl px-6 py-4 resize-none focus:outline-none focus:border-blue-500 max-h-40"
+                  placeholder="輸入訊息... (Enter 送出，Shift+Enter 換行)"></textarea>
+        <button onclick="sendMessage()" 
+                class="bg-blue-600 hover:bg-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+      <div class="text-center text-xs text-gray-500 mt-3">支援 Streaming 即時顯示</div>
+    </div>
+  </div>
+</body>
+<script>
+// ==================== 配置（2026 最新）===================
+const API_CONFIGS = {
+  kimi: {
+    name: "Kimi",
+    baseURL: "https://api.moonshot.ai/v1",
+    endpoint: "/chat/completions",
+    model: "kimi-k2.5"
+  },
+  grok: {
+    name: "Grok",
+    baseURL: "https://api.x.ai/v1",
+    endpoint: "/chat/completions",
+    model: "grok-beta"
+  },
+  deepseek: {
+    name: "DeepSeek",
+    baseURL: "https://api.deepseek.com",
+    endpoint: "/chat/completions",
+    model: "deepseek-chat"
+  }
+};
+
+// ==================== 全域變數 ====================
+let currentAPI = 'kimi';
+let messages = [];
+let isStreaming = false;
+
+// ==================== 載入設定 ====================
+function loadSettings() {
+  const savedAPI = localStorage.getItem('currentAPI');
+  if (savedAPI && API_CONFIGS[savedAPI]) currentAPI = savedAPI;
+
+  document.getElementById('apiSelect').value = currentAPI;
+  updateCurrentAPI();
+
+  const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
+  if (savedKey) document.getElementById('apiKey').value = savedKey;
+
+  const savedMessages = localStorage.getItem('chatMessages');
+  if (savedMessages) {
+    messages = JSON.parse(savedMessages);
+    renderMessages();
+  }
+}
+
+// ==================== 儲存 ====================
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) {
+    alert('請輸入 API Key');
+    return;
+  }
+  localStorage.setItem(`apiKey_${currentAPI}`, key);
+  alert('✅ API Key 已儲存！');
+}
+
+function saveMessages() {
+  localStorage.setItem('chatMessages', JSON.stringify(messages));
+}
+
+function updateCurrentAPI() {
+  document.getElementById('currentAPI').textContent = API_CONFIGS[currentAPI].name + ' 已啟用';
+}
+
+// ==================== 聊天渲染 ====================
+function renderMessages() {
+  const chat = document.getElementById('chat');
+  chat.innerHTML = '';
+  messages.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = `flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} message`;
+    div.innerHTML = `
+      <div class="${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-800'} px-5 py-4 rounded-3xl rounded-tr-none">
+        <div class="text-sm opacity-75 mb-1">${msg.role === 'user' ? '你' : API_CONFIGS[currentAPI].name}</div>
+        <div class="whitespace-pre-wrap">${msg.content}</div>
+      </div>
+    `;
+    chat.appendChild(div);
+  });
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ==================== 送出訊息 ====================
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isStreaming) return;
+
+  // 加入使用者訊息
+  messages.push({ role: 'user', content: text });
+  renderMessages();
+  input.value = '';
+
+  const key = localStorage.getItem(`apiKey_${currentAPI}`);
+  if (!key) {
+    alert('請先輸入並儲存 API Key');
+    return;
+  }
+
+  // 建立助理訊息區塊
+  const chat = document.getElementById('chat');
+  const assistantDiv = document.createElement('div');
+  assistantDiv.className = 'flex justify-start message';
+  assistantDiv.innerHTML = `
+    <div class="bg-gray-800 px-5 py-4 rounded-3xl rounded-tl-none">
+      <div class="text-sm opacity-75 mb-1">${API_CONFIGS[currentAPI].name} 思考中...</div>
+      <div id="streamingText" class="whitespace-pre-wrap"></div>
+    </div>
+  `;
+  chat.appendChild(assistantDiv);
+  chat.scrollTop = chat.scrollHeight;
+
+  const streamingText = document.getElementById('streamingText');
+  let fullResponse = '';
+
+  try {
+    isStreaming = true;
+    const config = API_CONFIGS[currentAPI];
+    const response = await fetch(config.baseURL + config.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: messages,
+        stream: true
+      })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            const delta = data.choices[0]?.delta?.content || '';
+            fullResponse += delta;
+            streamingText.textContent = fullResponse;
+            chat.scrollTop = chat.scrollHeight;
+          } catch (e) {}
+        }
+      }
+    }
+
+    // 完成後存入 messages
+    messages.push({ role: 'assistant', content: fullResponse });
+    saveMessages();
+    renderMessages(); // 重新渲染一次確保完整
+
+  } catch (err) {
+    streamingText.innerHTML = `<span class="text-red-400">❌ 錯誤：${err.message}</span><br>請檢查 API Key 或網路`;
+  } finally {
+    isStreaming = false;
+  }
+}
+
+// ==================== 其他功能 ====================
+function clearChat() {
+  if (confirm('確定要清空所有對話？')) {
+    messages = [];
+    localStorage.removeItem('chatMessages');
+    renderMessages();
+  }
+}
+
+function exportChat() {
+  if (messages.length === 0) return alert('沒有對話可匯出');
+  const json = JSON.stringify(messages, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `llm-chat-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+// ==================== 事件綁定 ====================
+document.getElementById('apiSelect').addEventListener('change', (e) => {
+  currentAPI = e.target.value;
+  localStorage.setItem('currentAPI', currentAPI);
+  updateCurrentAPI();
+
+  // 載入該 API 的 Key
+  const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
+  document.getElementById('apiKey').value = savedKey || '';
+});
+
+document.getElementById('userInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// ==================== 啟動 ====================
+loadSettings();
+</script>
+</html>

@@ -1,294 +1,283 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LLM 中轉站 - 私人版 v1.3</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    .message { max-width: 85%; }
-    .chat-container { scrollbar-width: thin; scrollbar-color: #4b5563 #1f2937; }
-  </style>
-</head>
-<body class="bg-gray-950 text-gray-200 flex h-screen overflow-hidden">
-  <!-- 左側設定面板 -->
-  <div class="w-80 bg-gray-900 border-r border-gray-700 flex flex-col">
-    <div class="p-6 border-b border-gray-700">
-      <h1 class="text-3xl font-bold text-white flex items-center gap-3">
-        <i class="fas fa-robot"></i> LLM 中轉站
-      </h1>
-      <p class="text-xs text-emerald-400 mt-1">v1.3 - 2026-02-26 15:30 CST • 已修正 Kimi URL & CORS 提示</p>
-    </div>
-
-    <div class="p-6 flex-1 flex flex-col gap-6">
-      <!-- API 選擇 -->
-      <div>
-        <label class="block text-sm font-medium mb-2">選擇 API</label>
-        <select id="apiSelect" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white">
-          <option value="deepseek">DeepSeek (5M 免費)</option>
-          <option value="grok">Grok (xAI)</option>
-          <option value="kimi" selected>Kimi (已充值 $5 • .cn)</option>
-        </select>
-      </div>
-
-      <!-- Kimi Region -->
-      <div id="kimiRegionGroup">
-        <label class="block text-sm font-medium mb-2">Kimi Region（已預設 .cn）</label>
-        <select id="kimiRegion" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white">
-          <option value="cn" selected>Domestic (.cn) - 你註冊平台</option>
-          <option value="ai">International (.ai)</option>
-        </select>
-      </div>
-
-      <!-- API Key -->
-      <div>
-        <label class="block text-sm font-medium mb-2">API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-..." 
-               class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white">
-        <button onclick="saveKey()" 
-                class="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-medium flex items-center justify-center gap-2">
-          <i class="fas fa-save"></i> 儲存 Key
-        </button>
-      </div>
-
-      <div class="flex gap-3">
-        <button onclick="clearChat()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-medium">🗑️ 清空對話</button>
-        <button onclick="exportChat()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-medium">📤 匯出對話</button>
-      </div>
-    </div>
-
-    <div class="p-6 text-xs text-gray-500 border-t border-gray-700">
-      私人測試版 • 每次更新都會顯示版本時間
-    </div>
-  </div>
-
-  <!-- 右側聊天區域 -->
-  <div class="flex-1 flex flex-col">
-    <div class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span id="currentAPI" class="font-semibold text-lg text-emerald-400">Kimi (.cn) 已啟用</span>
-      </div>
-      <div class="text-sm text-gray-400">記憶功能已開啟</div>
-    </div>
-
-    <div id="chat" class="flex-1 p-6 overflow-y-auto chat-container bg-gray-950 space-y-6"></div>
-
-    <div class="bg-gray-900 border-t border-gray-700 p-6">
-      <div class="flex gap-3">
-        <textarea id="userInput" rows="1" class="flex-1 bg-gray-800 border border-gray-600 rounded-2xl px-6 py-4 resize-none focus:outline-none focus:border-emerald-500 max-h-40"
-                  placeholder="輸入訊息... (Enter 送出)"></textarea>
-        <button onclick="sendMessage()" class="bg-emerald-600 hover:bg-emerald-500 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl transition">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
-      <div class="text-center text-xs text-gray-500 mt-3">v1.3 • 詳細錯誤診斷</div>
-    </div>
-  </div>
-</body>
-<script>
-// ==================== 配置 v1.3 ====================
-const API_CONFIGS = {
-  deepseek: { name: "DeepSeek", baseURL: "https://api.deepseek.com", endpoint: "/chat/completions", model: "deepseek-chat" },
-  grok: { name: "Grok", baseURL: "https://api.x.ai/v1", endpoint: "/chat/completions", model: "grok-beta" },
-  kimi: { name: "Kimi", endpoint: "/chat/completions", model: "kimi-k2.5" }
-};
-
-let currentAPI = 'kimi';
-let messages = [];
-let isStreaming = false;
-let kimiRegion = 'cn';  // 預設 .cn
-
-// ==================== 載入 ====================
-function loadSettings() {
-  currentAPI = localStorage.getItem('currentAPI') || 'kimi';
-  document.getElementById('apiSelect').value = currentAPI;
-
-  kimiRegion = localStorage.getItem('kimiRegion') || 'cn';
-  document.getElementById('kimiRegion').value = kimiRegion;
-
-  updateCurrentAPI();
-  toggleKimiRegion();
-
-  const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
-  if (savedKey) document.getElementById('apiKey').value = savedKey;
-
-  const savedMessages = localStorage.getItem('chatMessages');
-  if (savedMessages) {
-    messages = JSON.parse(savedMessages);
-    renderMessages();
-  }
-}
-
-function toggleKimiRegion() {
-  document.getElementById('kimiRegionGroup').classList.toggle('hidden', currentAPI !== 'kimi');
-}
-
-// ==================== 儲存 & 更新 ====================
-function saveKey() {
-  const key = document.getElementById('apiKey').value.trim();
-  if (!key) return alert('請輸入 API Key');
-  localStorage.setItem(`apiKey_${currentAPI}`, key);
-  alert('✅ Key 已儲存！');
-}
-
-function updateCurrentAPI() {
-  let text = `${API_CONFIGS[currentAPI].name} 已啟用`;
-  if (currentAPI === 'kimi') text += ` (.${kimiRegion})`;
-  document.getElementById('currentAPI').innerHTML = text;
-}
-
-// ==================== 聊天渲染 ====================
-function renderMessages() {
-  const chat = document.getElementById('chat');
-  chat.innerHTML = '';
-  messages.forEach(msg => {
-    const div = document.createElement('div');
-    div.className = `flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} message`;
-    div.innerHTML = `
-      <div class="${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-gray-800'} px-5 py-4 rounded-3xl rounded-tr-none">
-        <div class="text-sm opacity-75 mb-1">${msg.role === 'user' ? '你' : API_CONFIGS[currentAPI].name}</div>
-        <div class="whitespace-pre-wrap">${msg.content}</div>
-      </div>
-    `;
-    chat.appendChild(div);
-  });
-  chat.scrollTop = chat.scrollHeight;
-}
-
-// ==================== 送出訊息（已修正 baseURL + 加強錯誤） ====================
-async function sendMessage() {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text || isStreaming) return;
-
-  messages.push({ role: 'user', content: text });
-  renderMessages();
-  input.value = '';
-
-  const key = localStorage.getItem(`apiKey_${currentAPI}`);
-  if (!key) return alert('請先儲存 API Key');
-
-  const chat = document.getElementById('chat');
-  const assistantDiv = document.createElement('div');
-  assistantDiv.className = 'flex justify-start message';
-  assistantDiv.innerHTML = `
-    <div class="bg-gray-800 px-5 py-4 rounded-3xl rounded-tl-none w-full">
-      <div class="text-sm opacity-75 mb-1">${API_CONFIGS[currentAPI].name} 思考中...</div>
-      <div id="streamingText" class="whitespace-pre-wrap text-emerald-400"></div>
-    </div>
-  `;
-  chat.appendChild(assistantDiv);
-  chat.scrollTop = chat.scrollHeight;
-
-  const streamingText = document.getElementById('streamingText');
-  let fullResponse = '';
-
-  try {
-    isStreaming = true;
-
-    let config = {...API_CONFIGS[currentAPI]};
-    if (currentAPI === 'kimi') {
-      config.baseURL = kimiRegion === 'ai' 
-        ? 'https://api.moonshot.ai/v1' 
-        : 'https://api.moonshot.cn/v1';   // 你註冊的 .cn 已預設
-    }
-
-    const response = await fetch(config.baseURL + config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: messages,
-        stream: true
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`HTTP ${response.status} - ${errText.slice(0, 200)}`);
-    }
-
-    // streaming 處理
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            const delta = data.choices[0]?.delta?.content || '';
-            fullResponse += delta;
-            streamingText.textContent = fullResponse;
-            chat.scrollTop = chat.scrollHeight;
-          } catch(e) {}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羽球技術修正手機桌布</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
         }
-      }
-    }
+        .wallpaper-container {
+            width: 375px; /* Standard Mobile Ratio */
+            height: 812px;
+            margin: 20px 0;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border: 4px solid #333;
+        }
+        .gradient-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+            z-index: 10;
+        }
+        .bg-pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.1;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .content {
+            position: relative;
+            z-index: 20;
+            padding: 60px 24px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .number-bg {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 120px;
+            font-weight: 900;
+            opacity: 0.1;
+            line-height: 1;
+        }
+        .title-section {
+            margin-bottom: 40px;
+        }
+        .main-title {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+        .sub-title {
+            font-size: 18px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 8px;
+            border-left: 4px solid currentColor;
+            padding-left: 12px;
+        }
+        .rule-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .rule-tag {
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .rule-text {
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .rule-desc {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        .footer-note {
+            margin-top: auto;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            opacity: 0.5;
+        }
 
-    messages.push({ role: 'assistant', content: fullResponse });
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-    renderMessages();
+        /* Card Specific Styles */
+        .card-defense { background: #0f172a; }
+        .card-defense .accent { color: #38bdf8; }
+        .card-defense .rule-tag { background: #38bdf8; color: #0f172a; }
 
-  } catch (err) {
-    let msg = err.message;
-    if (msg.includes('Failed to fetch')) {
-      msg = '❌ Failed to fetch<br><span class="text-xs">這是 CORS 問題：Kimi 官方不允許 GitHub Pages 直接呼叫<br>解決方案：我下一版幫你加 Cloudflare Worker 中轉（2 分鐘搞定）</span>';
-    }
-    streamingText.innerHTML = `<span class="text-red-400">${msg}</span>`;
-  } finally {
-    isStreaming = false;
-  }
-}
+        .card-net { background: #064e3b; }
+        .card-net .accent { color: #4ade80; }
+        .card-net .rule-tag { background: #4ade80; color: #064e3b; }
 
-function clearChat() { /* 同之前 */ 
-  if (confirm('確定清空？')) {
-    messages = [];
-    localStorage.removeItem('chatMessages');
-    renderMessages();
-  }
-}
+        .card-attack { background: #450a0a; }
+        .card-attack .accent { color: #f87171; }
+        .card-attack .rule-tag { background: #f87171; color: #450a0a; }
 
-function exportChat() { /* 同之前 */ 
-  if (messages.length === 0) return alert('沒有對話');
-  const json = JSON.stringify(messages, null, 2);
-  const blob = new Blob([json], {type: 'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `llm-chat-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
+        .nav-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-btn.active { background: white; color: black; }
+        .nav-btn:not(.active) { color: white; opacity: 0.5; }
 
-// ==================== 事件 ====================
-document.getElementById('apiSelect').addEventListener('change', e => {
-  currentAPI = e.target.value;
-  localStorage.setItem('currentAPI', currentAPI);
-  updateCurrentAPI();
-  toggleKimiRegion();
-  const savedKey = localStorage.getItem(`apiKey_${currentAPI}`);
-  document.getElementById('apiKey').value = savedKey || '';
-});
+        @media (max-width: 400px) {
+            .wallpaper-container {
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                border: none;
+                border-radius: 0;
+            }
+            .nav-buttons { bottom: 40px; }
+        }
+    </style>
+</head>
+<body>
 
-document.getElementById('kimiRegion').addEventListener('change', e => {
-  kimiRegion = e.target.value;
-  localStorage.setItem('kimiRegion', kimiRegion);
-  updateCurrentAPI();
-});
+    <div id="card1" class="wallpaper-container card-defense">
+        <div class="number-bg">01</div>
+        <div class="gradient-overlay"></div>
+        <div class="content">
+            <div class="title-section">
+                <div class="main-title accent">防禦接殺卡</div>
+                <div class="sub-title">穩如泰山，借力反擊</div>
+            </div>
 
-document.getElementById('userInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
+            <div class="rule-card">
+                <div class="rule-tag">Rhythm</div>
+                <div class="rule-text">節奏同步：咚(殺)－咚(防)</div>
+                <div class="rule-desc">聽球聲對準同步律，不要搶拍也不要慢。</div>
+            </div>
 
-loadSettings();
-</script>
+            <div class="rule-card">
+                <div class="rule-tag">Posture</div>
+                <div class="rule-text">動態重心：拒絕死蹲</div>
+                <div class="rule-desc">腳跟微浮，保持隨時向前的推力與彈性。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Counter</div>
+                <div class="rule-text">回抽心法：借力推擋</div>
+                <div class="rule-desc">不發蠻力；球低則仰角調整，平推送過網。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Lift</div>
+                <div class="rule-text">回挑加力：額外引導</div>
+                <div class="rule-desc">借不到力時，手腕與小臂必須額外向上引導。</div>
+            </div>
+
+            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
+        </div>
+    </div>
+
+    <div id="card2" class="wallpaper-container card-net hidden">
+        <div class="number-bg">02</div>
+        <div class="gradient-overlay"></div>
+        <div class="content">
+            <div class="title-section">
+                <div class="main-title accent">搓撥撲網卡</div>
+                <div class="sub-title">搶佔高點，先發制人</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Timing</div>
+                <div class="rule-text">黃金二拍：觸球即撲</div>
+                <div class="rule-desc">對手觸球「一」，高點撲擊「二」。瞬息萬變。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Position</div>
+                <div class="rule-text">侵略站位：發球即進</div>
+                <div class="rule-desc">腳步即刻前踏，拍子前伸，極大化攔截區。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Mindset</div>
+                <div class="rule-text">關鍵意識：網前是搶下來的</div>
+                <div class="rule-desc">不要等球過來，要在球過網前主動迎擊。</div>
+            </div>
+
+            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
+        </div>
+    </div>
+
+    <div id="card3" class="wallpaper-container card-attack hidden">
+        <div class="number-bg">03</div>
+        <div class="gradient-overlay"></div>
+        <div class="content">
+            <div class="title-section">
+                <div class="main-title accent">殺球連貫卡</div>
+                <div class="sub-title">節奏壓制，心靈獵殺</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Flow</div>
+                <div class="rule-text">連貫壓迫：嚴格執行循環</div>
+                <div class="rule-desc">用穩定的「殺－防」頻率徹底摧毀對方防線。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Tactics</div>
+                <div class="rule-text">心理博弈：獵殺紊亂</div>
+                <div class="rule-desc">對方節奏不對時，閉眼憑直覺「抓」住空檔。</div>
+            </div>
+
+            <div class="rule-card">
+                <div class="rule-tag">Focus</div>
+                <div class="rule-text">致命威脅：節奏大於力量</div>
+                <div class="rule-desc">節奏對了普通殺球也致命；亂了重殺也是浪費。</div>
+            </div>
+
+            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
+        </div>
+    </div>
+
+    <div class="nav-buttons">
+        <div class="nav-btn active" onclick="showCard(1)">防禦</div>
+        <div class="nav-btn" onclick="showCard(2)">網前</div>
+        <div class="nav-btn" onclick="showCard(3)">連貫</div>
+    </div>
+
+    <script>
+        function showCard(index) {
+            document.querySelectorAll('.wallpaper-container').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('card' + index).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
 </html>

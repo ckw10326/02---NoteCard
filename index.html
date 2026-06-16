@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>羽球技術修正手機 桌布</title>
+    <title>羽球技術卡 · 合集</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -17,8 +17,38 @@
             align-items: center;
             overflow-x: hidden;
         }
+        /* 頂部主題切換 */
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 200;
+            background: rgba(0,0,0,0.8);
+            padding: 6px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .theme-btn {
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: white;
+            opacity: 0.5;
+            font-family: inherit;
+        }
+        .theme-btn.active { background: white; color: black; opacity: 1; }
+
         .wallpaper-container {
-            width: 375px; /* Standard Mobile Ratio */
+            width: 375px;
             height: 812px;
             margin: 20px 0;
             border-radius: 40px;
@@ -36,17 +66,10 @@
             background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
             z-index: 10;
         }
-        .bg-pattern {
-            position: absolute;
-            inset: 0;
-            opacity: 0.1;
-            z-index: 1;
-            pointer-events: none;
-        }
         .content {
             position: relative;
             z-index: 20;
-            padding: 60px 24px;
+            padding: 84px 24px 60px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -60,9 +83,7 @@
             opacity: 0.1;
             line-height: 1;
         }
-        .title-section {
-            margin-bottom: 40px;
-        }
+        .title-section { margin-bottom: 28px; }
         .main-title {
             font-size: 36px;
             font-weight: 900;
@@ -77,6 +98,24 @@
             border-left: 4px solid currentColor;
             padding-left: 12px;
         }
+        .chain-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0.85;
+        }
+        .chain-bar .node {
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .chain-bar .node.on { background: currentColor; }
+        .chain-bar .node.on span { color: #111; }
+        .chain-bar .arr { opacity: 0.5; }
         .rule-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -94,17 +133,8 @@
             padding: 2px 8px;
             border-radius: 4px;
         }
-        .rule-text {
-            font-size: 17px;
-            font-weight: 700;
-            line-height: 1.5;
-        }
-        .rule-desc {
-            font-size: 14px;
-            font-weight: 400;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
+        .rule-text { font-size: 17px; font-weight: 700; line-height: 1.5; }
+        .rule-desc { font-size: 14px; font-weight: 400; opacity: 0.7; margin-top: 4px; }
         .footer-note {
             margin-top: auto;
             text-align: center;
@@ -114,19 +144,29 @@
             opacity: 0.5;
         }
 
-        /* Card Specific Styles */
+        /* ===== 主題一：技術修正 配色 ===== */
         .card-defense { background: #0f172a; }
         .card-defense .accent { color: #38bdf8; }
         .card-defense .rule-tag { background: #38bdf8; color: #0f172a; }
-
         .card-net { background: #064e3b; }
         .card-net .accent { color: #4ade80; }
         .card-net .rule-tag { background: #4ade80; color: #064e3b; }
-
         .card-attack { background: #450a0a; }
         .card-attack .accent { color: #f87171; }
         .card-attack .rule-tag { background: #f87171; color: #450a0a; }
 
+        /* ===== 主題二：力量傳遞 配色 ===== */
+        .card-drive { background: #2a1207; }
+        .card-drive .accent { color: #ff8a4c; }
+        .card-drive .rule-tag { background: #ff8a4c; color: #2a1207; }
+        .card-rotate { background: #07262a; }
+        .card-rotate .accent { color: #3ad6c4; }
+        .card-rotate .rule-tag { background: #3ad6c4; color: #07262a; }
+        .card-snap { background: #3a0d12; }
+        .card-snap .accent { color: #f87171; }
+        .card-snap .rule-tag { background: #f87171; color: #3a0d12; }
+
+        /* 底部卡片切換 */
         .nav-buttons {
             position: fixed;
             bottom: 20px;
@@ -147,9 +187,13 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: white;
+            opacity: 0.5;
+            font-family: inherit;
         }
-        .nav-btn.active { background: white; color: black; }
-        .nav-btn:not(.active) { color: white; opacity: 0.5; }
+        .nav-btn.active { background: white; color: black; opacity: 1; }
 
         @media (max-width: 400px) {
             .wallpaper-container {
@@ -165,119 +209,252 @@
 </head>
 <body>
 
-    <div id="card1" class="wallpaper-container card-defense">
-        <div class="number-bg">01</div>
-        <div class="gradient-overlay"></div>
-        <div class="content">
-            <div class="title-section">
-                <div class="main-title accent">防禦接殺卡</div>
-                <div class="sub-title">穩如泰山，借力反擊</div>
-            </div>
+    <!-- 頂部：主題切換 -->
+    <div class="theme-switch">
+        <button class="theme-btn active" onclick="showTheme('tech')">技術修正</button>
+        <button class="theme-btn" onclick="showTheme('power')">力量傳遞</button>
+    </div>
 
-            <div class="rule-card">
-                <div class="rule-tag">Rhythm</div>
-                <div class="rule-text">節奏同步：咚(殺)－咚(防)</div>
-                <div class="rule-desc">聽球聲對準同步律，不要搶拍也不要慢。</div>
+    <!-- ===================== 主題一：技術修正 ===================== -->
+    <div class="theme-group" data-theme="tech">
+        <!-- 防禦 -->
+        <div id="tech-1" class="wallpaper-container card-defense">
+            <div class="number-bg">01</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">防禦接殺卡</div>
+                    <div class="sub-title">穩如泰山，借力反擊</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Rhythm</div>
+                    <div class="rule-text">節奏同步：咚(殺)－咚(防)</div>
+                    <div class="rule-desc">聽球聲對準同步律，不要搶拍也不要慢。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Posture</div>
+                    <div class="rule-text">動態重心：拒絕死蹲</div>
+                    <div class="rule-desc">腳跟微浮，保持隨時向前的推力與彈性。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Counter</div>
+                    <div class="rule-text">回抽心法：借力推擋</div>
+                    <div class="rule-desc">不發蠻力；球低則仰角調整，平推送過網。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Lift</div>
+                    <div class="rule-text">回挑加力：額外引導</div>
+                    <div class="rule-desc">借不到力時，手腕與小臂必須額外向上引導。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Posture</div>
-                <div class="rule-text">動態重心：拒絕死蹲</div>
-                <div class="rule-desc">腳跟微浮，保持隨時向前的推力與彈性。</div>
+        </div>
+        <!-- 網前 -->
+        <div id="tech-2" class="wallpaper-container card-net hidden">
+            <div class="number-bg">02</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">搓撥撲網卡</div>
+                    <div class="sub-title">搶佔高點，先發制人</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Timing</div>
+                    <div class="rule-text">黃金二拍：觸球即撲</div>
+                    <div class="rule-desc">對手觸球「一」，高點撲擊「二」。瞬息萬變。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Position</div>
+                    <div class="rule-text">侵略站位：發球即進</div>
+                    <div class="rule-desc">腳步即刻前踏，拍子前伸，極大化攔截區。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Mindset</div>
+                    <div class="rule-text">關鍵意識：網前是搶下來的</div>
+                    <div class="rule-desc">不要等球過來，要在球過網前主動迎擊。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Counter</div>
-                <div class="rule-text">回抽心法：借力推擋</div>
-                <div class="rule-desc">不發蠻力；球低則仰角調整，平推送過網。</div>
+        </div>
+        <!-- 連貫 -->
+        <div id="tech-3" class="wallpaper-container card-attack hidden">
+            <div class="number-bg">03</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">殺球連貫卡</div>
+                    <div class="sub-title">節奏壓制，心靈獵殺</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Flow</div>
+                    <div class="rule-text">連貫壓迫：嚴格執行循環</div>
+                    <div class="rule-desc">用穩定的「殺－防」頻率徹底摧毀對方防線。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Tactics</div>
+                    <div class="rule-text">心理博弈：獵殺紊亂</div>
+                    <div class="rule-desc">對方節奏不對時，閉眼憑直覺「抓」住空檔。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Focus</div>
+                    <div class="rule-text">致命威脅：節奏大於力量</div>
+                    <div class="rule-desc">節奏對了普通殺球也致命；亂了重殺也是浪費。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Lift</div>
-                <div class="rule-text">回挑加力：額外引導</div>
-                <div class="rule-desc">借不到力時，手腕與小臂必須額外向上引導。</div>
-            </div>
-
-            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
         </div>
     </div>
 
-    <div id="card2" class="wallpaper-container card-net hidden">
-        <div class="number-bg">02</div>
-        <div class="gradient-overlay"></div>
-        <div class="content">
-            <div class="title-section">
-                <div class="main-title accent">搓撥撲網卡</div>
-                <div class="sub-title">搶佔高點，先發制人</div>
+    <!-- ===================== 主題二：力量傳遞 ===================== -->
+    <div class="theme-group hidden" data-theme="power">
+        <!-- 發力 -->
+        <div id="power-1" class="wallpaper-container card-drive">
+            <div class="number-bg">01</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">單腳發力卡</div>
+                    <div class="sub-title">腳帶身體，重心先動</div>
+                </div>
+                <div class="chain-bar accent">
+                    <span class="node on"><span>腳</span></span><span class="arr">›</span>
+                    <span class="node">髖</span><span class="arr">›</span>
+                    <span class="node">軀幹</span><span class="arr">›</span>
+                    <span class="node">手</span>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Motion</div>
+                    <div class="rule-text">單腳橫向一跳</div>
+                    <div class="rule-desc">以單腳做橫向的一次跳躍，模擬殺球瞬間身體被帶動的軌跡，不是手在動，是腳在推。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Feel</div>
+                    <div class="rule-text">感受腳部發力</div>
+                    <div class="rule-desc">蹬地瞬間去感覺力量從腳掌出來，沿著腿往上傳，帶著重心往側邊移過去。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Check</div>
+                    <div class="rule-text">腳是力量起點</div>
+                    <div class="rule-desc">確認移動是從腳的蹬伸出發、再帶動重心，不是只靠上半身硬撐——根穩了，後面的力才接得上。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Timing</div>
-                <div class="rule-text">黃金二拍：觸球即撲</div>
-                <div class="rule-desc">對手觸球「一」，高點撲擊「二」。瞬息萬變。</div>
+        </div>
+        <!-- 轉身 -->
+        <div id="power-2" class="wallpaper-container card-rotate hidden">
+            <div class="number-bg">02</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">轉身跳越卡</div>
+                    <div class="sub-title">擊球瞬間，身體轉正</div>
+                </div>
+                <div class="chain-bar accent">
+                    <span class="node">腳</span><span class="arr">›</span>
+                    <span class="node on"><span>髖</span></span><span class="arr">›</span>
+                    <span class="node on"><span>軀幹</span></span><span class="arr">›</span>
+                    <span class="node">手</span>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Add-on</div>
+                    <div class="rule-text">加入轉身移動</div>
+                    <div class="rule-desc">卡片一的橫跳順暢後，把跳躍加上轉身，讓腳的發力同時帶動髖與軀幹一起旋轉。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Key</div>
+                    <div class="rule-text">擊球瞬間轉正</div>
+                    <div class="rule-desc">要領是擊球那一刻身體剛好轉成正面朝前——轉體在空中、擊球當下完成，落地只是收勢，不是落地才喬。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Chain</div>
+                    <div class="rule-text">力量不中斷</div>
+                    <div class="rule-desc">腳→髖→軀幹的旋轉要連續，轉身只是把橫向的力導成出拍的力，過程中不停頓。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Position</div>
-                <div class="rule-text">侵略站位：發球即進</div>
-                <div class="rule-desc">腳步即刻前踏，拍子前伸，極大化攔截區。</div>
+        </div>
+        <!-- 收尾 -->
+        <div id="power-3" class="wallpaper-container card-snap hidden">
+            <div class="number-bg">03</div>
+            <div class="gradient-overlay"></div>
+            <div class="content">
+                <div class="title-section">
+                    <div class="main-title accent">手臂收尾卡</div>
+                    <div class="sub-title">力到手指，鞭打出球</div>
+                </div>
+                <div class="chain-bar accent">
+                    <span class="node">腳</span><span class="arr">›</span>
+                    <span class="node">髖</span><span class="arr">›</span>
+                    <span class="node">軀幹</span><span class="arr">›</span>
+                    <span class="node on"><span>手</span></span>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Relay</div>
+                    <div class="rule-text">大臂帶小臂</div>
+                    <div class="rule-desc">接續卡片二轉正的軀幹力量，由大臂先甩出、再帶動小臂，力量一棒接一棒往末端送，手臂全程放鬆不僵。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Whip</div>
+                    <div class="rule-text">小臂內旋鞭打</div>
+                    <div class="rule-desc">擊球瞬間小臂快速內旋（旋前），像甩鞭子一樣把速度集中到拍頭，這是整條力量鏈的加速段。</div>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-tag">Snap</div>
+                    <div class="rule-text">手指最後扣壓</div>
+                    <div class="rule-desc">觸球那一刻手指瞬間握緊扣壓，把傳上來的力一次釋放——手指是出口，鬆握到緊握的落差就是球速。</div>
+                </div>
+                <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
             </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Mindset</div>
-                <div class="rule-text">關鍵意識：網前是搶下來的</div>
-                <div class="rule-desc">不要等球過來，要在球過網前主動迎擊。</div>
-            </div>
-
-            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
         </div>
     </div>
 
-    <div id="card3" class="wallpaper-container card-attack hidden">
-        <div class="number-bg">03</div>
-        <div class="gradient-overlay"></div>
-        <div class="content">
-            <div class="title-section">
-                <div class="main-title accent">殺球連貫卡</div>
-                <div class="sub-title">節奏壓制，心靈獵殺</div>
-            </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Flow</div>
-                <div class="rule-text">連貫壓迫：嚴格執行循環</div>
-                <div class="rule-desc">用穩定的「殺－防」頻率徹底摧毀對方防線。</div>
-            </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Tactics</div>
-                <div class="rule-text">心理博弈：獵殺紊亂</div>
-                <div class="rule-desc">對方節奏不對時，閉眼憑直覺「抓」住空檔。</div>
-            </div>
-
-            <div class="rule-card">
-                <div class="rule-tag">Focus</div>
-                <div class="rule-text">致命威脅：節奏大於力量</div>
-                <div class="rule-desc">節奏對了普通殺球也致命；亂了重殺也是浪費。</div>
-            </div>
-
-            <div class="footer-note accent">BADMINTON ELITE ADVISOR</div>
-        </div>
-    </div>
-
-    <div class="nav-buttons">
-        <div class="nav-btn active" onclick="showCard(1)">防禦</div>
-        <div class="nav-btn" onclick="showCard(2)">網前</div>
-        <div class="nav-btn" onclick="showCard(3)">連貫</div>
-    </div>
+    <!-- 底部：卡片切換（隨主題換內容） -->
+    <div class="nav-buttons" id="navButtons"></div>
 
     <script>
-        function showCard(index) {
-            document.querySelectorAll('.wallpaper-container').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('card' + index).classList.remove('hidden');
-            event.target.classList.add('active');
+        const THEMES = {
+            tech:  { labels: ['防禦', '網前', '連貫'] },
+            power: { labels: ['發力', '轉身', '收尾'] }
+        };
+        let currentTheme = 'tech';
+
+        function renderNav(themeKey, activeIndex) {
+            const nav = document.getElementById('navButtons');
+            nav.innerHTML = '';
+            THEMES[themeKey].labels.forEach((label, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-btn' + (i + 1 === activeIndex ? ' active' : '');
+                btn.textContent = label;
+                btn.onclick = () => showCard(i + 1);
+                nav.appendChild(btn);
+            });
         }
+
+        function showCard(index) {
+            // 只在當前主題群組內切換卡片
+            document.querySelectorAll('.theme-group[data-theme="' + currentTheme + '"] .wallpaper-container')
+                .forEach(el => el.classList.add('hidden'));
+            document.getElementById(currentTheme + '-' + index).classList.remove('hidden');
+            renderNav(currentTheme, index);
+        }
+
+        function showTheme(themeKey) {
+            currentTheme = themeKey;
+            // 切換主題群組顯示
+            document.querySelectorAll('.theme-group').forEach(g => {
+                g.classList.toggle('hidden', g.dataset.theme !== themeKey);
+            });
+            // 主題鈕 active 狀態
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            // 回到該主題第一張卡
+            document.querySelectorAll('.theme-group[data-theme="' + themeKey + '"] .wallpaper-container')
+                .forEach((el, i) => el.classList.toggle('hidden', i !== 0));
+            renderNav(themeKey, 1);
+        }
+
+        // 初始化
+        renderNav('tech', 1);
     </script>
 </body>
 </html>
